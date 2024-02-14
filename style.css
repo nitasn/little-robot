@@ -21,11 +21,12 @@ canvas {
 
 button {
   position: absolute;
-  left: 1.25rem;
-  bottom: 1.25rem;
+  left: 1.5rem;
+  bottom: 1.5rem;
   border: none;
   padding: .75em 1.5em;
-  background-color: rgb(213, 125, 125);
+  background-color: rgb(125, 213, 131);
   border-radius: .125rem;
   cursor: pointer;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
 }

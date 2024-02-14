@@ -76,7 +76,7 @@ function drawObstacles() {
 
 function drawTarget() {
   ctx.lineWidth = 0.1;
-  ctx.fillStyle = 'green';
+  ctx.fillStyle = '#aaa';
   ctx.beginPath();
   ctx.arc(...target.position, target.radius, 0, Math.PI * 2);
   ctx.fill();
