@@ -1,0 +1,31 @@
+*,
+*::before,
+*::after {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+canvas {
+  width: calc(100vmin - 1rem);
+  height: calc(100vmin - 1rem);
+  border: 1px solid gray;
+}
+
+button {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  border: none;
+  padding: .75em 1.5em;
+  background-color: rgb(213, 125, 125);
+  border-radius: .125rem;
+  cursor: pointer;
+}
