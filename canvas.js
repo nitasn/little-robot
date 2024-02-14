@@ -1,6 +1,11 @@
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("2d");
 
+
+///////////////////////////////////////////////////////////////
+///                  A R E A   C O N F I G                  ///
+///////////////////////////////////////////////////////////////
+
 const robot = {
   position: [10, 10],
   radius: 1,
@@ -18,7 +23,7 @@ const target = {
 };
 
 /** degrees per clocktick */
-const MAX_ANGULAR_SPEED = 2.718281828; 
+const MAX_ANGULAR_SPEED = 2.718281828;
 
 /** units per clocktick */
 const MAX_FORWARD_SPEED = 0.2;
@@ -26,9 +31,10 @@ const MAX_FORWARD_SPEED = 0.2;
 /** if an object is further than this, the sensor sees infinite distance */
 const DISTANCE_SENSOR_MAX = 6;
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////
+///                A R E N A   D R A W I N G                ///
+///////////////////////////////////////////////////////////////
 
 const arenaFrame = { x: 0, y: 0, w: 100, h: 100 };
 const ouchSegments = [...obstacles, arenaFrame]
@@ -83,14 +89,6 @@ function drawTarget() {
   ctx.stroke();
 }
 
-function pointPlusPolarVector([x, y], degrees, radius) {
-  const toRadians = Math.PI / 180;
-  return [
-    x + radius * Math.cos(degrees * toRadians),
-    y + radius * Math.sin(degrees * toRadians),
-  ];
-}
-
 function drawOuchSegments() {
   for (const [x1, y1, x2, y2] of ouchSegments) {
     ctx.beginPath();
@@ -126,9 +124,18 @@ function drawEverything() {
 drawEverything();
 window.addEventListener("resize", drawEverything);
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////
+///                   M A T H   U T I L S                   ///
+///////////////////////////////////////////////////////////////
+
+function pointPlusPolarVector([x, y], degrees, radius) {
+  const toRadians = Math.PI / 180;
+  return [
+    x + radius * Math.cos(degrees * toRadians),
+    y + radius * Math.sin(degrees * toRadians),
+  ];
+}
 
 function segmentsIntersection(p1x, p1y, p2x, p2y, p3x, p3y, p4x, p4y) {
   // Calculate parts of the equations
@@ -157,9 +164,24 @@ function sqrDistance([x1, y1], [x2, y2]) {
   return dx * dx + dy * dy;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+function mod360(degrees) {
+  return (degrees % 360 + 360) % 360;
+}
+
+function clamp(low, val, high) {
+  return Math.max(low, Math.min(val, high));
+}
+
+
+///////////////////////////////////////////////////////////////
+///         R O B O T   C O R E   F U N C T I O N S         ///
+///////////////////////////////////////////////////////////////
+
+function drive(forwardPower, angularPower) {
+  robot.degrees += angularPower / 100 * MAX_ANGULAR_SPEED;
+  const unitsForward = forwardPower / 100 * MAX_FORWARD_SPEED;
+  robot.position = pointPlusPolarVector(robot.position, robot.degrees, unitsForward);
+}
 
 function _frontDistanceVector() {
   const robotEdge = pointPlusPolarVector(robot.position, robot.degrees, robot.radius);
@@ -183,23 +205,10 @@ function frontDistance() {
   return Math.sqrt(minSqrDist);
 }
 
-function drive(forwardPower, angularPower) {
-  robot.degrees += angularPower / 100 * MAX_ANGULAR_SPEED;
-  const unitsForward = forwardPower / 100 * MAX_FORWARD_SPEED;
-  robot.position = pointPlusPolarVector(robot.position, robot.degrees, unitsForward);
-}
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-function mod360(degrees) {
-  return (degrees % 360 + 360) % 360;
-}
-
-function clamp(low, val, high) {
-  return Math.max(low, Math.min(val, high));
-}
+///////////////////////////////////////////////////////////////
+///       A L G O R I T H M   H E L P E R   F U N C S       ///
+///////////////////////////////////////////////////////////////
 
 /** result_deg is in the range (-180, 180] */
 function signed_delta_deg(alpha, beta) {
@@ -236,6 +245,16 @@ function distanceToTarget() {
   return Math.sqrt(sqrDist);
 }
 
+function currentDirectionIsGettingAwayFromTarget() {
+  const delta_deg = signed_delta_deg(degressToTarget(), robot.degrees);
+  return Math.abs(delta_deg) <= 90;
+}
+
+
+///////////////////////////////////////////////////////////////
+///               M A I N   A L G O R I T H M               ///
+///////////////////////////////////////////////////////////////
+
 ///
 
 const iter = mainAlgorithm();
@@ -250,21 +269,22 @@ function* mainAlgorithm() {
   while (true) {
     const whyStopped = yield* walkTowardsTarget();
 
-    if (whyStopped == "REACHED TARGET") {
-      return; // algorithm terminates
-    }
+    if (whyStopped == "REACHED TARGET") return; // algorithm terminates
 
-    else /* if (whyStopped == "SEES OBSTACLE") */ {
-      yield* circumventObstacle();
+    // if we're here, whyStopped == "SEES OBSTACLE"
+
+    do {
+      yield* parallelizeObstacleAndWalkUntilBoom();
     }
+    while (!currentDirectionIsGettingAwayFromTarget());
   }
 }
 
-function* circumventObstacle() {
+function* parallelizeObstacleAndWalkUntilBoom() {
   const degreesAlongObstacle = yield* measureDegreesParallelToObject();
 
   yield* rotateUntilInAngle(degreesAlongObstacle);
-  
+
   yield* continueInThisDirectionUntilBoom();
 
   const delta_deg = signed_delta_deg(degressToTarget(), robot.degrees);
@@ -274,7 +294,7 @@ function* circumventObstacle() {
     return yield* rotateUntilInAngle(degressToTarget());;
   }
 
-  yield* circumventObstacle();
+  yield* parallelizeObstacleAndWalkUntilBoom();
 }
 
 function* continueInThisDirectionUntilBoom() {
@@ -303,7 +323,7 @@ function* rotateUntilInAngle(degrees) {
 }
 
 function* measureDegreesParallelToObject() {
-  const normalDirection = yield* degreesToClosestObject();
+  const normalDirection = yield* measureDegreesToClosestObject();
 
   const optionA = mod360(normalDirection + 90); // circumvent obstacle from left
   const optionB = mod360(normalDirection - 90); // circumvent obstacle from right
@@ -315,7 +335,7 @@ function* measureDegreesParallelToObject() {
   return (costOptionA < costOptionB) ? optionA : optionB;
 }
 
-function* degreesToClosestObject() {
+function* measureDegreesToClosestObject() {
   const DEGREES_TO_MOVE_EACH_TURN = 2;
 
   let minDistance = Number.POSITIVE_INFINITY;
@@ -334,13 +354,14 @@ function* degreesToClosestObject() {
   return argminDegrees;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////
+///     C A L L   " L O O P "   P E R I O D I C A L L Y     ///
+///////////////////////////////////////////////////////////////
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function startLooping({ msInterval }, func) {
+async function callPeriodically({ msInterval }, func) {
   while (true) {
     const start = Date.now();
     func();
@@ -356,8 +377,8 @@ async function startLooping({ msInterval }, func) {
 }
 
 document.querySelector('button').addEventListener('click', () => {
-  startLooping({ msInterval: 5 }, () => {
+  callPeriodically({ msInterval: 5 }, () => {
     loop();
     drawEverything();
-  });  
+  });
 });
