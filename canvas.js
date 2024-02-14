@@ -280,7 +280,7 @@ function* mainAlgorithm() {
     }
     while (!isLookingAwayFromTarget());
 
-    // we need to rotate away from the wall before starts walking towards target,
+    // we need to rotate away from the wall before starting to walk towards target,
     // otherwise `walkTowardsTarget` would halt immediately as it sees a wall
     yield* rotateUntilInAngle(degressToTarget());
   }
