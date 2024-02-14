@@ -245,9 +245,9 @@ function distanceToTarget() {
   return Math.sqrt(sqrDist);
 }
 
-function currentDirectionIsGettingAwayFromTarget() {
+function isLookingAwayFromTarget() {
   const delta_deg = signed_delta_deg(degressToTarget(), robot.degrees);
-  return Math.abs(delta_deg) <= 90;
+  return Math.abs(delta_deg) > 90;
 }
 
 
@@ -271,30 +271,19 @@ function* mainAlgorithm() {
 
     if (whyStopped == "REACHED TARGET") return; // algorithm terminates
 
-    // if we're here, whyStopped == "SEES OBSTACLE"
+    // we stopeed because there's an obstacle in front of us
 
     do {
-      yield* parallelizeObstacleAndWalkUntilBoom();
+      const degreesAlongObstacle = yield* measureDegreesParallelToObject();
+      yield* rotateUntilInAngle(degreesAlongObstacle);
+      yield* continueInThisDirectionUntilBoom();
     }
-    while (!currentDirectionIsGettingAwayFromTarget());
+    while (!isLookingAwayFromTarget());
+
+    // we need to rotate away from the wall before starts walking towards target,
+    // otherwise `walkTowardsTarget` would halt immediately as it sees a wall
+    yield* rotateUntilInAngle(degressToTarget());
   }
-}
-
-function* parallelizeObstacleAndWalkUntilBoom() {
-  const degreesAlongObstacle = yield* measureDegreesParallelToObject();
-
-  yield* rotateUntilInAngle(degreesAlongObstacle);
-
-  yield* continueInThisDirectionUntilBoom();
-
-  const delta_deg = signed_delta_deg(degressToTarget(), robot.degrees);
-  const shouldDriveDirectlyToTarget = Math.abs(delta_deg) > 90;
-
-  if (shouldDriveDirectlyToTarget) {
-    return yield* rotateUntilInAngle(degressToTarget());;
-  }
-
-  yield* parallelizeObstacleAndWalkUntilBoom();
 }
 
 function* continueInThisDirectionUntilBoom() {
@@ -305,13 +294,18 @@ function* continueInThisDirectionUntilBoom() {
 
 function* walkTowardsTarget() {
   while (true) {
+
     if (distanceToTarget() < 0.1) {
       return "REACHED TARGET";
     }
+
     if (frontDistance() < 5) {
       return "SEES OBSTACLE";
     }
+
+    // fix direction if deviated a little bit
     yield* rotateUntilInAngle(degressToTarget());
+
     yield drive(100, 0);
   }
 }
