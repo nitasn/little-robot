@@ -61,7 +61,7 @@ function drawOuchSegments() {
 }
 
 function drawFrontDistance() {
-  const [robotEdge, visionEdge] = _frontDistanceVector();
+  const [robotEdge, visionEdge] = _vectorFrontDistanceSensor();
 
   ctx.beginPath();
   ctx.lineWidth = 0.15;

@@ -12,19 +12,19 @@ const ouchSegments = [...obstacles, arenaFrame]
   ]);
 
 function drive(forwardPower, angularPower) {
-  robot.degrees += angularPower / 100 * MAX_ANGULAR_SPEED;
-  const unitsForward = forwardPower / 100 * MAX_FORWARD_SPEED;
+  robot.degrees += clamp(-100, angularPower, +100) / 100 * MAX_ANGULAR_SPEED;
+  const unitsForward = clamp(-100, forwardPower, +100) / 100 * MAX_FORWARD_SPEED;
   robot.position = pointPlusPolarVector(robot.position, robot.degrees, unitsForward);
 }
 
-function _frontDistanceVector() {
+function _vectorFrontDistanceSensor() {
   const robotEdge = pointPlusPolarVector(robot.position, robot.degrees, robot.radius);
   const visionEdge = pointPlusPolarVector(robotEdge, robot.degrees, DISTANCE_SENSOR_MAX);
   return [robotEdge, visionEdge];
 }
 
 function frontDistance() {
-  const [robotEdge, visionEdge] = _frontDistanceVector();
+  const [robotEdge, visionEdge] = _vectorFrontDistanceSensor();
   const visionTrajectory = [...robotEdge, ...visionEdge];
 
   let minSqrDist = Number.POSITIVE_INFINITY;

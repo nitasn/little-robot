@@ -10,12 +10,9 @@ function signedDeltaDeg(alpha, beta) {
 
 function rotateToward(desiredDeg) {
   const deltaDeg = signedDeltaDeg(desiredDeg, robot.degrees);
-
-  let rotation_power = Math.abs(deltaDeg) / MAX_ANGULAR_SPEED * 100;
-  rotation_power = clamp(1, rotation_power, 100);
-
-  const right = (deltaDeg > 0 || deltaDeg < -180) ? +1 : -1;
-  return drive(0, right * rotation_power);
+  const absPower = Math.abs(deltaDeg) / MAX_ANGULAR_SPEED * 100;
+  const power = Math.sign(deltaDeg) * clamp(1, absPower, 100);
+  return drive(0, power);
 }
 
 function isCloseToAngle(desiredDeg) {
