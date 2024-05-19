@@ -4,7 +4,7 @@
 
 const robot = {
   position: [10, 10],
-  radius: 1,
+  radius: 1.25,
   degrees: 0,
 };
 
@@ -15,7 +15,7 @@ const obstacles = [
 
 const target = {
   position: [90, 80],
-  radius: 1,
+  radius: 1.25,
 };
 
 /** degrees per clocktick */

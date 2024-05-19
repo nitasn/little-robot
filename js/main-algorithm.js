@@ -49,6 +49,7 @@ function isLookingAwayFromTarget() {
 const iter = mainAlgorithm();
 
 function loop() {
+  // read from sensors, then:
   iter.next();
 }
 
