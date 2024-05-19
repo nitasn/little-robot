@@ -1,8 +1,12 @@
 # Little Robot
 
-This robot is programmed as a *coroutine*, rather than as state machine.
+This robot is programmed as a *coroutine*, rather than a state machine.
 
 ![Robot Simulation Clip](media/Screen-Recording.gif)
+
+There's an online version [here](https://nitasn.github.io/little-robot/).
+
+---
 
 In each clock tick, the robot read from its sensors, then resumes its coroutine.
 
